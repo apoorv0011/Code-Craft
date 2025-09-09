@@ -1,40 +1,42 @@
-import React, { useState } from 'react';
-import ToolLayout from '../components/ToolLayout';
-import LoadingButton from '../components/LoadingButton';
-import ResultDisplay from '../components/ResultDisplay';
-import { generateContent } from '../services/geminiApi';
+import React, { useState } from "react";
+import ToolPageLayout from "../components/ToolPageLayout";
+import ResultFormatter from "../components/ResultFormatter";
+import { generateContent } from "../services/geminiApi";
+import { useNavigate } from "react-router-dom";
+
+const stepIcons = [
+  <span key="goal" role="img" aria-label="target">🎯</span>,
+  <span key="lang" role="img" aria-label="laptop">💻</span>
+];
 
 function CodeGenerator() {
-  const [purpose, setPurpose] = useState('');
-  const [language, setLanguage] = useState('');
-  const [result, setResult] = useState('');
+  const [purpose, setPurpose] = useState("");
+  const [language, setLanguage] = useState("");
+  const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleGenerate = async () => {
     if (!purpose.trim() || !language.trim()) {
-      setError('Please fill in all fields.');
+      setError("Please fill in all required fields.");
       return;
     }
-
-    setError('');
+    setError("");
     setLoading(true);
-    setResult('');
+    setResult("");
     try {
-      const prompt = `Generate code for the following purpose: "${purpose}" using the programming language: ${language}. 
-      
-      Format your response using Markdown.
-      Provide:
-      1. A brief explanation of the code.
-      2. The complete, functional code inside a \`\`\`${language.toLowerCase()} code block.
-      3. Comments explaining key parts within the code.
-      4. Any setup instructions if needed.
-      5. Example usage if applicable.
-      
-      Make sure the code is production-ready and follows best practices.`;
-
-      const generatedCode = await generateContent(prompt);
-      setResult(generatedCode);
+      const prompt = `Generate code for the following purpose: "${purpose}" using the programming language: ${language}.
+Format your response using Markdown.
+Provide:
+1. A brief explanation of the code.
+2. The complete, functional code inside a \`\`\`${language.toLowerCase()} code block.
+3. Comments explaining key parts within the code.
+4. Any setup instructions if needed.
+5. Example usage if applicable.
+Make sure the code is production-ready and follows best practices.`;
+      const generated = await generateContent(prompt);
+      setResult(generated);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -43,50 +45,46 @@ function CodeGenerator() {
   };
 
   return (
-    <ToolLayout
+    <ToolPageLayout
       title="Code Generator"
-      description="Turn ideas into code. Just describe what you need, and let AI build it for you."
-    >
-      <div className="bg-card border rounded-lg p-6 md:p-8">
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Coding Purpose
-            </label>
+      info="This tool streamlines the process of turning ideas into code, offering tailored, ready-to-use solutions that save time and enhance productivity for developers of all levels."
+      description="This tool streamlines the process of turning ideas into code, offering tailored, ready-to-use solutions..."
+      steps={[
+        {
+          label: "Explain the goal or objective of the code you want to generate?",
+          icon: stepIcons[0],
+          input: (
             <textarea
               value={purpose}
-              onChange={(e) => setPurpose(e.target.value)}
-              placeholder="e.g., A Python script to scrape website titles"
-              className="w-full h-28 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none"
+              onChange={e => setPurpose(e.target.value)}
+              className="mt-1 w-full h-20 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none text-sm"
+              placeholder="Please describe your coding purpose. e.g., To create a quiz web app, etc."
+              required
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Programming Language
-            </label>
+          )
+        },
+        {
+          label: "What programming language or framework are you using?",
+          icon: stepIcons[1],
+          input: (
             <input
               type="text"
               value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              placeholder="e.g., Python, JavaScript, React"
-              className="w-full px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring"
+              onChange={e => setLanguage(e.target.value)}
+              className="mt-1 w-full px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring"
+              placeholder="e.g., Python, Java, React etc.."
+              required
             />
-          </div>
-
-          <LoadingButton
-            loading={loading}
-            onClick={handleGenerate}
-            disabled={!purpose.trim() || !language.trim()}
-          >
-            Generate Code
-          </LoadingButton>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <ResultDisplay result={result} />
-        </div>
-      </div>
-    </ToolLayout>
+          )
+        }
+      ]}
+      onBack={() => navigate(-1)}
+      onSubmit={handleGenerate}
+      error={error}
+      loading={loading}
+      submitLabel={loading ? "Generating..." : "Create Content"}
+      resultSection={result ? <ResultFormatter markdown={result} /> : <div className="text-muted-foreground">Your generated result will appear here.</div>}
+    />
   );
 }
 

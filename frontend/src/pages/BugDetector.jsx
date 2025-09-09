@@ -1,113 +1,118 @@
-import React, { useState } from 'react';
-import ToolLayout from '../components/ToolLayout';
-import LoadingButton from '../components/LoadingButton';
-import ResultDisplay from '../components/ResultDisplay';
-import { generateContent } from '../services/geminiApi';
+import React, { useState } from "react";
+import ToolPageLayout from "../components/ToolPageLayout";
+import ResultFormatter from "../components/ResultFormatter";
+import { generateContent } from "../services/geminiApi";
+import { useNavigate } from "react-router-dom";
+
+const stepIcons = [
+  <span key="code" role="img" aria-label="page">📄</span>,
+  <span key="bug" role="img" aria-label="bug">🦠</span>,
+  <span key="more" role="img" aria-label="info">🌟</span>
+];
 
 function BugDetector() {
-  const [codeSnippet, setCodeSnippet] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
-  const [additionalDetails, setAdditionalDetails] = useState('');
-  const [result, setResult] = useState('');
+  const [code, setCode] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [details, setDetails] = useState("");
+  const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  const handleDetectBug = async () => {
-    if (!codeSnippet.trim() || !errorMessage.trim()) {
-      setError('Please provide both the code snippet and the error message.');
+  const rawResultText = result;
+
+  const handleDetect = async () => {
+    if (!code.trim() || !errorMsg.trim()) {
+      setError("Please provide both your code and the error message.");
       return;
     }
-
-    setError('');
+    setError("");
     setLoading(true);
-    setResult('');
+    setResult("");
     try {
-      const prompt = `Please analyze the following code and error message to identify and fix bugs.
+      const prompt = `
+Please analyze and help debug the following code.
 
-      Code snippet:
-      \`\`\`
-      ${codeSnippet}
-      \`\`\`
+Code:
+\`\`\`
+${code}
+\`\`\`
+Error message:
+${errorMsg}
+${details ? `\nAdditional details/expected outcome: ${details}` : ""}
 
-      Error message:
-      \`\`\`
-      ${errorMessage}
-      \`\`\`
-
-      ${additionalDetails ? `Additional context: ${additionalDetails}` : ''}
-
-      Format your response using Markdown.
-      Provide:
-      1. **Root Cause Analysis**: A clear explanation of the bug.
-      2. **Corrected Code**: The fixed code snippet in a new code block.
-      3. **Explanation of Fix**: A step-by-step guide on what was changed.
-      4. **Best Practices**: Tips to prevent similar issues.`;
-
-      const analysis = await generateContent(prompt);
-      setResult(analysis);
+- Identify the most likely cause of the error, suggest a fix, and briefly explain your reasoning.
+- Format your answer in Markdown, using clear section headings ("Diagnosis", "Solution", "Explanation", etc.).
+- Use code blocks for any corrected code. Bullet lists are encouraged when needed.
+      `;
+      const aiResult = await generateContent(prompt);
+      setResult(aiResult);
     } catch (err) {
-      setError(err.message);
+      setError("Sorry, something went wrong. Try again!");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <ToolLayout
+    <ToolPageLayout
       title="Bug Detector"
-      description="Pinpoint and fix bugs by analyzing your code snippets and error messages."
-    >
-      <div className="bg-card border rounded-lg p-6 md:p-8">
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Code Snippet
-            </label>
+      info="This tool analyzes your input, like error messages and code snippets, to pinpoint and fix bugs, offering detailed solutions and alternatives in an easy-to-understand manner."
+      description="This tool analyzes your input, like error messages and code snippets, to pinpoint and fix bugs, offering detailed solutions and alternatives in an easy-to-understand manner."
+      steps={[
+        {
+          label: "Can you share the code snippet causing trouble?",
+          icon: stepIcons[0],
+          input: (
             <textarea
-              value={codeSnippet}
-              onChange={(e) => setCodeSnippet(e.target.value)}
-              placeholder="Paste your code snippet here..."
-              className="w-full h-48 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none font-mono text-sm"
+              value={code}
+              onChange={e => setCode(e.target.value)}
+              className="mt-1 w-full h-20 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none text-sm"
+              placeholder="Paste your code snippet here."
+              required
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Error Message
-            </label>
+          )
+        },
+        {
+          label: "What's the error message you're seeing?",
+          icon: stepIcons[1],
+          input: (
             <textarea
-              value={errorMessage}
-              onChange={(e) => setErrorMessage(e.target.value)}
-              placeholder="Paste your error message here..."
-              className="w-full h-32 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none font-mono text-sm"
+              value={errorMsg}
+              onChange={e => setErrorMsg(e.target.value)}
+              className="mt-1 w-full h-16 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none text-sm"
+              placeholder="Please copy and paste the error you got"
+              required
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Additional Details (Optional)
-            </label>
+          )
+        },
+        {
+          label: "Any additional details or expected outcomes? (optional)",
+          icon: stepIcons[2],
+          input: (
             <textarea
-              value={additionalDetails}
-              onChange={(e) => setAdditionalDetails(e.target.value)}
-              placeholder="Provide any additional context or expectations..."
-              className="w-full h-24 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none"
+              value={details}
+              onChange={e => setDetails(e.target.value)}
+              className="mt-1 w-full h-14 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none text-sm"
+              placeholder="To understand your goal better! Please provide your expectations or any additional details."
             />
-          </div>
-
-          <LoadingButton
-            loading={loading}
-            onClick={handleDetectBug}
-            disabled={!codeSnippet.trim() || !errorMessage.trim()}
-          >
-            Detect Bug
-          </LoadingButton>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <ResultDisplay result={result} />
-        </div>
-      </div>
-    </ToolLayout>
+          )
+        }
+      ]}
+      onBack={() => navigate(-1)}
+      onSubmit={handleDetect}
+      error={error}
+      loading={loading}
+      submitLabel={loading ? "Detecting..." : "Create Content"}
+      resultSection={
+        result ? (
+          <ResultFormatter markdown={result} />
+        ) : (
+          <div className="text-muted-foreground">Your bug analysis and solution will appear here.</div>
+        )
+      }
+      rawResultText={rawResultText}
+    />
   );
 }
 

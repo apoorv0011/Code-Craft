@@ -4,6 +4,14 @@ import { Bot, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { isSupabaseConfigured } from '../supabaseClient';
 
+function getInitials(email) {
+  if (!email) return '';
+  const namePart = email.split('@')[0];
+  const parts = namePart.split(/[._\-]/);
+  const initials = parts.map(part => part.charAt(0).toUpperCase()).join('');
+  return initials.slice(0, 2);
+}
+
 function Header() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -23,9 +31,12 @@ function Header() {
         <nav className="flex items-center gap-4">
           {isSupabaseConfigured() && user ? (
             <>
-              <span className="text-sm text-muted-foreground hidden sm:inline">
-                {user.email}
-              </span>
+              <div 
+                className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold"
+                title={user.email}
+              >
+                {getInitials(user.email)}
+              </div>
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-secondary text-secondary-foreground rounded-md hover:bg-accent transition-colors"

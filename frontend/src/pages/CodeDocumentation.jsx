@@ -1,97 +1,144 @@
-import React, { useState } from 'react';
-import ToolLayout from '../components/ToolLayout';
-import LoadingButton from '../components/LoadingButton';
-import ResultDisplay from '../components/ResultDisplay';
-import { generateContent } from '../services/geminiApi';
+import React, { useState } from "react";
+import ToolPageLayout from "../components/ToolPageLayout";
+import ResultFormatter from "../components/ResultFormatter";
+import { generateContent } from "../services/geminiApi";
+import { useNavigate } from "react-router-dom";
+
+const stepIcons = [
+  <span key="code" role="img" aria-label="page">📄</span>,
+  <span key="type" role="img" aria-label="note">🗒️</span>,
+  <span key="goal" role="img" aria-label="goal">🌟</span>,
+  <span key="info" role="img" aria-label="info">ℹ️</span>
+];
+
+const docTypes = [
+  "I require API reference documentation for my project.",
+  "I require usage examples for this code.",
+  "I require inline comments for clarity.",
+  "I require high-level conceptual/project documentation."
+];
 
 function CodeDocumentation() {
-  const [sourceCode, setSourceCode] = useState('');
-  const [projectGoal, setProjectGoal] = useState('');
-  const [result, setResult] = useState('');
+  const [code, setCode] = useState("");
+  const [docType, setDocType] = useState(docTypes[0]);
+  const [goal, setGoal] = useState("");
+  const [additionalInfo, setAdditionalInfo] = useState("");
+  const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  const handleGenerateDocumentation = async () => {
-    if (!sourceCode.trim() || !projectGoal.trim()) {
-      setError('Please provide both the source code and the project goal.');
+  const rawResultText = result;
+
+  const handleGenerate = async () => {
+    if (!code.trim() || !docType.trim()) {
+      setError("Please provide your code and documentation type.");
       return;
     }
-
-    setError('');
+    setError("");
     setLoading(true);
-    setResult('');
+    setResult("");
     try {
-      const prompt = `Generate comprehensive documentation for the following code.
+      const prompt = `
+Generate clear, well-structured documentation for the following code.
 
-      Source Code:
-      \`\`\`
-      ${sourceCode}
-      \`\`\`
+Documentation type: ${docType}
+${goal ? `\nProject goal: ${goal}` : ""}
+${additionalInfo ? `\nAdditional details: ${additionalInfo}` : ""}
 
-      Project Goal: ${projectGoal}
+Code to document:
+\`\`\`
+${code}
+\`\`\`
 
-      Format the response using Markdown.
-      Provide:
-      1. **Overview**: A summary of the code's functionality.
-      2. **API Documentation / Function Breakdown**: Detailed explanation of each function, its parameters, and return values.
-      3. **Usage Examples**: Clear examples of how to use the code.
-      4. **Installation/Setup**: Any necessary setup instructions.
-      
-      Make the documentation professional and easy for other developers to understand.`;
-
-      const documentation = await generateContent(prompt);
-      setResult(documentation);
+- Output the documentation in Markdown, with relevant section headings as needed.
+- Include tables, bullet points, and code blocks where it makes the documentation clearer.
+- Structure your answer to be easy to read both for beginners and experienced developers.
+      `;
+      const aiResult = await generateContent(prompt);
+      setResult(aiResult);
     } catch (err) {
-      setError(err.message);
+      setError("Sorry, something went wrong. Try again!");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <ToolLayout
+    <ToolPageLayout
       title="Code Documentation"
-      description="Generate clear, concise documentation to make your projects easy to understand and maintain."
-    >
-      <div className="bg-card border rounded-lg p-6 md:p-8">
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Source Code
-            </label>
+      info="This tool streamlines the creation of clear and concise code documentation, making it easier for developers to understand, maintain, and collaborate on software projects."
+      description="This tool streamlines the creation of clear and concise code documentation, making it easier for developers to understand, maintain, and collaborate on software projects."
+      steps={[
+        {
+          label: "Can you share the source code that you need documentation for?",
+          icon: stepIcons[0],
+          input: (
             <textarea
-              value={sourceCode}
-              onChange={(e) => setSourceCode(e.target.value)}
-              placeholder="Paste your source code here..."
-              className="w-full h-48 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none font-mono text-sm"
+              value={code}
+              onChange={e => setCode(e.target.value)}
+              className="mt-1 w-full h-20 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none text-sm"
+              placeholder="Please paste your source code here."
+              required
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Project's Goal
-            </label>
+          )
+        },
+        {
+          label: "What type of documentation are you looking for?",
+          icon: stepIcons[1],
+          input: (
+            <select
+              value={docType}
+              onChange={e => setDocType(e.target.value)}
+              className="mt-1 w-full px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring"
+              required
+            >
+              {docTypes.map(opt =>
+                <option key={opt}>{opt}</option>
+              )}
+            </select>
+          )
+        },
+        {
+          label: "Tell us about your project's goal or what it aims to achieve? (optional)",
+          icon: stepIcons[2],
+          input: (
+            <input
+              type="text"
+              value={goal}
+              onChange={e => setGoal(e.target.value)}
+              className="mt-1 w-full px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring"
+              placeholder="Please describe your project's goal."
+            />
+          )
+        },
+        {
+          label: "Is there any additional information or specific details you'd like to include in the documentation? (optional)",
+          icon: stepIcons[3],
+          input: (
             <textarea
-              value={projectGoal}
-              onChange={(e) => setProjectGoal(e.target.value)}
-              placeholder="Describe what your project aims to achieve..."
-              className="w-full h-24 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none"
+              value={additionalInfo}
+              onChange={e => setAdditionalInfo(e.target.value)}
+              className="mt-1 w-full h-14 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none text-sm"
+              placeholder="Please provide any additional details for the documentation"
             />
-          </div>
-
-          <LoadingButton
-            loading={loading}
-            onClick={handleGenerateDocumentation}
-            disabled={!sourceCode.trim() || !projectGoal.trim()}
-          >
-            Generate Docs
-          </LoadingButton>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <ResultDisplay result={result} />
-        </div>
-      </div>
-    </ToolLayout>
+          )
+        }
+      ]}
+      onBack={() => navigate(-1)}
+      onSubmit={handleGenerate}
+      error={error}
+      loading={loading}
+      submitLabel={loading ? "Generating..." : "Create Content"}
+      resultSection={
+        result ? (
+          <ResultFormatter markdown={result} />
+        ) : (
+          <div className="text-muted-foreground">Your generated documentation will appear here.</div>
+        )
+      }
+      rawResultText={rawResultText}
+    />
   );
 }
 

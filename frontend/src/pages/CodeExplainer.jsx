@@ -1,37 +1,46 @@
-import React, { useState } from 'react';
-import ToolLayout from '../components/ToolLayout';
-import LoadingButton from '../components/LoadingButton';
-import ResultDisplay from '../components/ResultDisplay';
-import { generateContent } from '../services/geminiApi';
+import React, { useState } from "react";
+import ToolPageLayout from "../components/ToolPageLayout";
+import ResultFormatter from "../components/ResultFormatter";
+import { generateContent } from "../services/geminiApi";
+import { useNavigate } from "react-router-dom";
+
+// Step icons using emoji for simplicity
+const stepIcons = [
+  <span key="snippet" role="img" aria-label="page">📄</span>,
+  <span key="level" role="img" aria-label="target">🎯</span>,
+  <span key="focus" role="img" aria-label="question">🔍</span>
+];
 
 function CodeExplainer() {
-  const [code, setCode] = useState('');
-  const [specificQuestion, setSpecificQuestion] = useState('');
-  const [result, setResult] = useState('');
+  const [code, setCode] = useState("");
+  const [level, setLevel] = useState("Step-by-step guide");
+  const [specificQuestion, setSpecificQuestion] = useState("");
+  const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  // For copy button: always use the markdown output string
+  const rawResultText = result;
 
   const handleExplain = async () => {
     if (!code.trim()) {
-      setError('Please paste your code to be explained.');
+      setError("Please paste your code to be explained.");
       return;
     }
-
-    setError('');
+    setError("");
     setLoading(true);
-    setResult('');
+    setResult("");
     try {
-      let prompt = `Please explain the following code in a clear, step-by-step manner.
+      let prompt = `Please explain the following code in a clear, ${level.toLowerCase()}.
       
-      Code to explain:
-      \`\`\`
-      ${code}
-      \`\`\`
-      
-      ${specificQuestion.trim() ? `Additionally, please address this specific question: ${specificQuestion}` : ''}
+Code to explain:
+\`\`\`
+${code}
+\`\`\`
+${specificQuestion.trim() ? `Additionally, please address this specific question: ${specificQuestion}` : ""}
 
-      Format your response using Markdown. Make the explanation easy to understand for developers of all levels.`;
-
+Format your response using Markdown. Make the explanation easy to understand for developers of all levels.`;
       const explanation = await generateContent(prompt);
       setResult(explanation);
     } catch (err) {
@@ -42,49 +51,68 @@ function CodeExplainer() {
   };
 
   return (
-    <ToolLayout
+    <ToolPageLayout
       title="Code Explainer"
-      description="Simplify complex code. Paste any snippet to get a clear, step-by-step explanation."
-    >
-      <div className="bg-card border rounded-lg p-6 md:p-8">
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Code Snippet
-            </label>
+      info="This tool simplifies understanding code by explaining it in easy-to-follow terms, making programming more accessible for everyone."
+      description="This tool simplifies understanding code by explaining it in easy-to-follow terms, making programming more accessible for everyone."
+      steps={[
+        {
+          label: "Could you share the code snippet you’d like to be explained?",
+          icon: stepIcons[0],
+          input: (
             <textarea
               value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="Paste your code here..."
-              className="w-full h-48 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none font-mono text-sm"
+              onChange={e => setCode(e.target.value)}
+              className="mt-1 w-full h-24 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none text-sm"
+              placeholder="Please paste your code here."
+              required
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Specific Question (Optional)
-            </label>
-            <textarea
+          ),
+        },
+        {
+          label: "What level of explanation are you looking for?",
+          icon: stepIcons[1],
+          input: (
+            <select
+              value={level}
+              onChange={e => setLevel(e.target.value)}
+              className="mt-1 w-full px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring"
+            >
+              <option>Step-by-step guide</option>
+              <option>Quick summary</option>
+              <option>High-level overview</option>
+            </select>
+          ),
+        },
+        {
+          label: "Are there specific details or concepts you want the explanation to focus on? (optional)",
+          icon: stepIcons[2],
+          input: (
+            <input
+              type="text"
               value={specificQuestion}
-              onChange={(e) => setSpecificQuestion(e.target.value)}
-              placeholder="e.g., Why is recursion used here?"
-              className="w-full h-24 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none"
+              onChange={e => setSpecificQuestion(e.target.value)}
+              className="mt-1 w-full px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring"
+              placeholder="Please enter your specific question, doubt, or any details for which you need an explanation."
             />
-          </div>
-
-          <LoadingButton
-            loading={loading}
-            onClick={handleExplain}
-            disabled={!code.trim()}
-          >
-            Explain Code
-          </LoadingButton>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <ResultDisplay result={result} />
-        </div>
-      </div>
-    </ToolLayout>
+          ),
+        },
+      ]}
+      onBack={() => navigate(-1)}
+      onSubmit={handleExplain}
+      error={error}
+      loading={loading}
+      submitLabel={loading ? "Explaining..." : "Create Content"}
+      // Pass rawResultText for copying, resultSection for display
+      resultSection={
+        result ? (
+          <ResultFormatter markdown={result} />
+        ) : (
+          <div className="text-muted-foreground">Your explanation will appear here.</div>
+        )
+      }
+      rawResultText={rawResultText}
+    />
   );
 }
 

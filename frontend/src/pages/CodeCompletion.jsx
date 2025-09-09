@@ -1,109 +1,122 @@
-import React, { useState } from 'react';
-import ToolLayout from '../components/ToolLayout';
-import LoadingButton from '../components/LoadingButton';
-import ResultDisplay from '../components/ResultDisplay';
-import { generateContent } from '../services/geminiApi';
+import React, { useState } from "react";
+import ToolPageLayout from "../components/ToolPageLayout";
+import ResultFormatter from "../components/ResultFormatter";
+import { generateContent } from "../services/geminiApi";
+import { useNavigate } from "react-router-dom";
+
+const stepIcons = [
+  <span key="lang" role="img" aria-label="laptop">💻</span>,
+  <span key="snippet" role="img" aria-label="page">📄</span>,
+  <span key="target" role="img" aria-label="goal">🎯</span>
+];
 
 function CodeCompletion() {
-  const [language, setLanguage] = useState('');
-  const [currentCode, setCurrentCode] = useState('');
-  const [purpose, setPurpose] = useState('');
-  const [result, setResult] = useState('');
+  const [language, setLanguage] = useState("");
+  const [code, setCode] = useState("");
+  const [goal, setGoal] = useState("");
+  const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  const handleComplete = async () => {
-    if (!language.trim() || !currentCode.trim() || !purpose.trim()) {
-      setError('Please fill in all fields.');
+  const rawResultText = result;
+
+  const handleCompletion = async () => {
+    if (!language.trim() || !code.trim() || !goal.trim()) {
+      setError("Please fill in all required fields.");
       return;
     }
-
-    setError('');
+    setError("");
     setLoading(true);
-    setResult('');
+    setResult("");
     try {
-      const prompt = `Please complete the following ${language} code based on the purpose described.
-      
-      Purpose: ${purpose}
+      const prompt = `
+Given the following code (in ${language}), please offer a smart, context-aware completion to help the user achieve:
+"${goal}".
 
-      Current code:
-      \`\`\`${language.toLowerCase()}
-      ${currentCode}
-      \`\`\`
+Current code:
+\`\`\`
+${code}
+\`\`\`
 
-      Format your response using Markdown.
-      Provide:
-      1. The completed/extended code in a new code block.
-      2. An explanation of what was added or changed.
-      
-      Make the completion contextually appropriate and follow best practices.`;
-
+- If useful, include additional explanation, comments, and suggestions.
+- Output your answer in clear Markdown, using:
+  - **Section headings** for "Completed Code", "Explanation", etc.
+  - Code blocks where relevant.
+  - Bullet points or tables if that will help understanding.
+- Your answer should be readable and visually clear, ready for direct use or learning.
+      `;
       const completion = await generateContent(prompt);
       setResult(completion);
     } catch (err) {
-      setError(err.message);
+      setError("Sorry, something went wrong. Try again!");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <ToolLayout
+    <ToolPageLayout
       title="Code Completion"
-      description="Get smart, context-aware code completions to save time and reduce errors."
-    >
-      <div className="bg-card border rounded-lg p-6 md:p-8">
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Programming Language
-            </label>
+      info="This tool streamlines the coding process by offering smart, context-aware code completions, saving time and reducing errors, making coding more productive."
+      description="This tool streamlines the coding process by offering smart, context-aware code completions, saving time and reducing errors, making coding more productive."
+      steps={[
+        {
+          label: "What programming language or framework are you using?",
+          icon: stepIcons[0],
+          input: (
             <input
               type="text"
               value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              placeholder="e.g., Python, JavaScript"
-              className="w-full px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring"
+              onChange={e => setLanguage(e.target.value)}
+              className="mt-1 w-full px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring"
+              placeholder="e.g., Python, Java, React etc.."
+              required
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Current Code
-            </label>
+          )
+        },
+        {
+          label: "Can you share the code you're working on?",
+          icon: stepIcons[1],
+          input: (
             <textarea
-              value={currentCode}
-              onChange={(e) => setCurrentCode(e.target.value)}
-              placeholder="Paste your incomplete code here..."
-              className="w-full h-48 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none font-mono text-sm"
+              value={code}
+              onChange={e => setCode(e.target.value)}
+              className="mt-1 w-full h-24 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none text-sm"
+              placeholder="Please paste your current code here"
+              required
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Code's Purpose
-            </label>
-            <textarea
-              value={purpose}
-              onChange={(e) => setPurpose(e.target.value)}
-              placeholder="e.g., To create a user login system"
-              className="w-full h-24 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none"
+          )
+        },
+        {
+          label: "What specific functionality or outcome are you aiming to achieve with this code?",
+          icon: stepIcons[2],
+          input: (
+            <input
+              type="text"
+              value={goal}
+              onChange={e => setGoal(e.target.value)}
+              className="mt-1 w-full px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring"
+              placeholder="Please describe your code's purpose. e.g., To create a user login system"
+              required
             />
-          </div>
-
-          <LoadingButton
-            loading={loading}
-            onClick={handleComplete}
-            disabled={!language.trim() || !currentCode.trim() || !purpose.trim()}
-          >
-            Complete Code
-          </LoadingButton>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <ResultDisplay result={result} />
-        </div>
-      </div>
-    </ToolLayout>
+          )
+        }
+      ]}
+      onBack={() => navigate(-1)}
+      onSubmit={handleCompletion}
+      error={error}
+      loading={loading}
+      submitLabel={loading ? "Completing..." : "Create Content"}
+      resultSection={
+        result ? (
+          <ResultFormatter markdown={result} />
+        ) : (
+          <div className="text-muted-foreground">Your completed code and explanation will appear here.</div>
+        )
+      }
+      rawResultText={rawResultText}
+    />
   );
 }
 

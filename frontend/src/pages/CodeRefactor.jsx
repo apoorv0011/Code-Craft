@@ -1,96 +1,120 @@
-import React, { useState } from 'react';
-import ToolLayout from '../components/ToolLayout';
-import LoadingButton from '../components/LoadingButton';
-import ResultDisplay from '../components/ResultDisplay';
-import { generateContent } from '../services/geminiApi';
+import React, { useState } from "react";
+import ToolPageLayout from "../components/ToolPageLayout";
+import ResultFormatter from "../components/ResultFormatter";
+import { generateContent } from "../services/geminiApi";
+import { useNavigate } from "react-router-dom";
+
+const stepIcons = [
+  <span key="code" role="img" aria-label="page">📄</span>,
+  <span key="goal" role="img" aria-label="target">🎯</span>,
+  <span key="docs" role="img" aria-label="docs">📚</span>
+];
 
 function CodeRefactor() {
-  const [code, setCode] = useState('');
-  const [goal, setGoal] = useState('');
-  const [result, setResult] = useState('');
+  const [code, setCode] = useState("");
+  const [goal, setGoal] = useState("");
+  const [details, setDetails] = useState("");
+  const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const rawResultText = result;
 
   const handleRefactor = async () => {
     if (!code.trim() || !goal.trim()) {
-      setError('Please provide both the code and the refactoring goal.');
+      setError("Please enter both your code and the refactoring goal.");
       return;
     }
-
-    setError('');
+    setError("");
     setLoading(true);
-    setResult('');
+    setResult("");
     try {
-      const prompt = `Please refactor the following code to achieve the specified goal.
+      const prompt = `
+Please refactor the following code to achieve the stated improvements.
 
-      Original Code:
-      \`\`\`
-      ${code}
-      \`\`\`
+Goal: ${goal}
+${details ? `\nAdditional information/guidelines: ${details}` : ""}
 
-      Refactoring Goal: ${goal}
+Code to refactor:
+\`\`\`
+${code}
+\`\`\`
 
-      Format your response using Markdown.
-      Provide:
-      1. **Refactored Code**: The improved code in a new code block.
-      2. **Explanation of Changes**: A summary of what was improved (e.g., performance, readability, maintainability).
-      3. **Before/After Comparison**: A brief comparison of the key differences.
-      
-      Ensure the refactored code maintains the same functionality.`;
-
-      const refactoredCode = await generateContent(prompt);
-      setResult(refactoredCode);
+- Refactor and optimize the code as needed to achieve the goal.
+- Output the refactored code first in a code block.
+- Then provide a clear, sectioned Markdown explanation for changes made, their impact, and any best practices followed.
+- Use section headings like "Refactored Code", "Key Improvements", and "Explanation".
+      `;
+      const aiResult = await generateContent(prompt);
+      setResult(aiResult);
     } catch (err) {
-      setError(err.message);
+      setError("Sorry, something went wrong. Try again!");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <ToolLayout
+    <ToolPageLayout
       title="Code Refactor"
-      description="Fine-tune your code for better performance, readability, and maintenance."
-    >
-      <div className="bg-card border rounded-lg p-6 md:p-8">
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Code to Refactor
-            </label>
+      info="This tool fine-tunes your code for better performance and easier maintenance, ensuring it stays efficient and clear without altering its purpose."
+      description="This tool fine-tunes your code for better performance and easier maintenance, ensuring it stays efficient and clear without altering its purpose."
+      steps={[
+        {
+          label: "Can you share the piece of code you'd like to improve or refactor?",
+          icon: stepIcons[0],
+          input: (
             <textarea
               value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="Paste your code here..."
-              className="w-full h-48 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none font-mono text-sm"
+              onChange={e => setCode(e.target.value)}
+              className="mt-1 w-full h-20 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none text-sm"
+              placeholder="Please paste your code here."
+              required
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Refactoring Goal
-            </label>
-            <textarea
+          )
+        },
+        {
+          label: "What specific improvements or outcomes are you aiming for with this refactoring?",
+          icon: stepIcons[1],
+          input: (
+            <input
+              type="text"
               value={goal}
-              onChange={(e) => setGoal(e.target.value)}
-              placeholder="e.g., Increase efficiency, improve readability, convert to functional components..."
-              className="w-full h-24 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none"
+              onChange={e => setGoal(e.target.value)}
+              className="mt-1 w-full px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring"
+              placeholder="Please state your goal. e.g., increase efficiency, reduce processing time."
+              required
             />
-          </div>
-
-          <LoadingButton
-            loading={loading}
-            onClick={handleRefactor}
-            disabled={!code.trim() || !goal.trim()}
-          >
-            Refactor Code
-          </LoadingButton>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <ResultDisplay result={result} />
-        </div>
-      </div>
-    </ToolLayout>
+          )
+        },
+        {
+          label: "Is there any additional information, documentation, or guidelines you'd like to provide to help with the refactor? (optional)",
+          icon: stepIcons[2],
+          input: (
+            <textarea
+              value={details}
+              onChange={e => setDetails(e.target.value)}
+              className="mt-1 w-full h-14 px-4 py-2 bg-background border rounded-md focus:ring-2 focus:ring-ring resize-none text-sm"
+              placeholder="Please share any relevant documents or details here."
+            />
+          )
+        }
+      ]}
+      onBack={() => navigate(-1)}
+      onSubmit={handleRefactor}
+      error={error}
+      loading={loading}
+      submitLabel={loading ? "Refactoring..." : "Create Content"}
+      resultSection={
+        result ? (
+          <ResultFormatter markdown={result} />
+        ) : (
+          <div className="text-muted-foreground">Your refactored code and explanation will appear here.</div>
+        )
+      }
+      rawResultText={rawResultText}
+    />
   );
 }
 
