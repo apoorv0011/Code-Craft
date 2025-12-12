@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -14,28 +14,37 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 
+function AppContent() {
+  const location = useLocation();
+  const hideFooter = location.pathname === '/login' || location.pathname === '/signup';
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <Header />
+      <main className="flex-grow">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          
+          <Route path="/code-generator" element={<ProtectedRoute><CodeGenerator /></ProtectedRoute>} />
+          <Route path="/code-explainer" element={<ProtectedRoute><CodeExplainer /></ProtectedRoute>} />
+          <Route path="/code-completion" element={<ProtectedRoute><CodeCompletion /></ProtectedRoute>} />
+          <Route path="/bug-detector" element={<ProtectedRoute><BugDetector /></ProtectedRoute>} />
+          <Route path="/code-converter" element={<ProtectedRoute><CodeConverter /></ProtectedRoute>} />
+          <Route path="/code-documentation" element={<ProtectedRoute><CodeDocumentation /></ProtectedRoute>} />
+          <Route path="/code-refactor" element={<ProtectedRoute><CodeRefactor /></ProtectedRoute>} />
+        </Routes>
+      </main>
+      {!hideFooter && <Footer />}
+    </div>
+  );
+}
+
 function App() {
   return (
     <Router>
-      <div className="min-h-screen flex flex-col bg-background">
-        <Header />
-        <main className="flex-grow">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            
-            <Route path="/code-generator" element={<ProtectedRoute><CodeGenerator /></ProtectedRoute>} />
-            <Route path="/code-explainer" element={<ProtectedRoute><CodeExplainer /></ProtectedRoute>} />
-            <Route path="/code-completion" element={<ProtectedRoute><CodeCompletion /></ProtectedRoute>} />
-            <Route path="/bug-detector" element={<ProtectedRoute><BugDetector /></ProtectedRoute>} />
-            <Route path="/code-converter" element={<ProtectedRoute><CodeConverter /></ProtectedRoute>} />
-            <Route path="/code-documentation" element={<ProtectedRoute><CodeDocumentation /></ProtectedRoute>} />
-            <Route path="/code-refactor" element={<ProtectedRoute><CodeRefactor /></ProtectedRoute>} />
-          </Routes>
-        </main>
-        <Footer />
-      </div>
+      <AppContent />
     </Router>
   );
 }

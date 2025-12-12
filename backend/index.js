@@ -12,13 +12,27 @@ app.get('/', (req, res) => {
   res.send('Backend is running 🚀');
 });
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).then(() => {
-  console.log('MongoDB connected');
-  app.listen(process.env.PORT || 5000, () => {
-    console.log(`Server running on port ${process.env.PORT || 5000}`);
+const PORT = process.env.PORT || 5000;
+
+// Connect to MongoDB (optional - will run without it)
+if (process.env.MONGO_URI) {
+  mongoose.connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    console.log('✅ MongoDB connected successfully');
+  })
+  .catch(err => {
+    console.warn('⚠️  MongoDB connection failed:', err.message);
+    console.warn('⚠️  Server will continue running without database');
   });
-}).catch(err => console.error(err));
+} else {
+  console.warn('⚠️  MONGO_URI not found in .env - running without database');
+}
+
+// Start server regardless of MongoDB connection
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📡 Access at: http://localhost:${PORT}`);
+});
