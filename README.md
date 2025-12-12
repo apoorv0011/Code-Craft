@@ -125,4 +125,4 @@ MIT License - feel free to use this project for learning and portfolio purposes.
 
 ---
 
-Built with ❤️ using React, Tailwind CSS, and Gemini AI
+Built with ❤️ using React, Tailwind CSS, and Gemini API
